@@ -4,7 +4,8 @@ Install [Tailscale](https://tailscale.com/) on Debian, enable `tailscaled`, and
 idempotently join the tailnet from an auth key. Optionally run the node as a
 **subnet router** — advertise one or more LAN CIDRs to the tailnet and enable IP
 forwarding, so roaming clients reach the whole LAN through this one box without
-every host joining the tailnet.
+every host joining the tailnet — and/or as an **exit node**, so clients can route
+all their internet traffic through it (full tunnel).
 
 The role:
 
@@ -12,7 +13,8 @@ The role:
   via the modern `signed-by` convention) and installs `tailscale`
   (version-pinnable).
 - Enables and starts `tailscaled`.
-- When `tailscale_advertise_routes` is set, enables IPv4/IPv6 forwarding.
+- When `tailscale_advertise_routes` is set or `tailscale_advertise_exit_node` is
+  true, enables IPv4/IPv6 forwarding.
 - Runs `tailscale up` from a (vaulted) auth key **only when the node is not
   already up** — idempotent on re-runs.
 
@@ -43,6 +45,7 @@ complete surface and is validated at role start.
 |---|---|---|
 | `tailscale_authkey` | `""` | Auth key for non-interactive `tailscale up`. **Supply via vault.** Required before a not-yet-up node will join. |
 | `tailscale_advertise_routes` | `""` | CIDR(s) to advertise (subnet-router mode), e.g. `192.168.178.0/24`. When set, IP forwarding is enabled. |
+| `tailscale_advertise_exit_node` | `false` | Offer this node as an exit node (full-tunnel egress for clients). When true, IP forwarding is enabled. Approve once in the admin console. |
 | `tailscale_accept_dns` | `false` | Accept tailnet DNS (MagicDNS). False on a subnet router. |
 | `tailscale_hostname` | `""` | Node name in the tailnet; empty uses the system hostname. |
 | `tailscale_up_extra_args` | `""` | Extra whitespace-separated args appended to `tailscale up`. |
@@ -63,6 +66,7 @@ the role won't re-run `up` — apply the change on the host directly, e.g.:
 
 ```sh
 tailscale set --advertise-routes=192.168.178.0/24,10.0.0.0/24
+tailscale set --advertise-exit-node
 tailscale set --accept-dns=false
 ```
 
@@ -80,11 +84,13 @@ tailscale set --accept-dns=false
       vars:
         tailscale_authkey: "{{ vault_tailscale_authkey }}"
         tailscale_advertise_routes: "192.168.178.0/24"
+        tailscale_advertise_exit_node: true   # optional: full-tunnel egress
         tailscale_accept_dns: false
 ```
 
-After the first run, **approve the advertised route once** in the Tailscale
-admin console (or pre-authorize it with an auto-approver ACL tag).
+After the first run, **approve the advertised route and/or exit node once** in
+the Tailscale admin console (or pre-authorize with an auto-approver ACL tag).
+Exit nodes are then selected per-client ("use exit node").
 
 ## License
 

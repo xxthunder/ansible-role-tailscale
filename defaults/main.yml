@@ -21,6 +21,14 @@ tailscale_authkey: ""
 # forward), and the route must still be approved once in the admin console.
 tailscale_advertise_routes: ""
 
+# Exit-node mode. When true the node offers itself as an exit node, letting
+# tailnet clients route ALL their internet traffic through it (full tunnel),
+# e.g. from untrusted networks. Like subnet routing it requires IPv4/IPv6
+# forwarding (enabled automatically) and must be approved once in the admin
+# console; clients then opt in per-device ("use exit node"). Independent of
+# tailscale_advertise_routes — a node can do either, both, or neither.
+tailscale_advertise_exit_node: false
+
 # Accept DNS config pushed by the tailnet (MagicDNS / global nameserver). False
 # on a subnet router — it lives on the LAN and keeps its own resolver; remote
 # *clients* are the ones that should accept tailnet DNS (set in the admin

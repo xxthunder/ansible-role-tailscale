@@ -47,9 +47,10 @@
     enabled: true
     state: started
 
-# A subnet router must forward packets between the tailnet and the LAN. Only
-# touched when advertising routes — a plain node has no reason to forward.
-- name: Enable IP forwarding for subnet routing
+# A subnet router or exit node must forward packets between the tailnet and the
+# rest of the network. Only touched in those modes — a plain node has no reason
+# to forward.
+- name: Enable IP forwarding for subnet routing / exit node
   ansible.posix.sysctl:
     name: "{{ item }}"
     value: "1"
@@ -59,7 +60,7 @@
   loop:
     - net.ipv4.ip_forward
     - net.ipv6.conf.all.forwarding
-  when: tailscale_advertise_routes | length > 0
+  when: tailscale_advertise_routes | length > 0 or tailscale_advertise_exit_node | bool
 
 - name: Read current tailscale backend state
   # Read-only; runs even under --check so a real subsequent --check of an
@@ -99,6 +100,7 @@
     tailscale_up_argv: >-
       {{ ['tailscale', 'up', '--authkey=' ~ tailscale_authkey]
          + (['--advertise-routes=' ~ tailscale_advertise_routes] if tailscale_advertise_routes | length > 0 else [])
+         + (['--advertise-exit-node'] if tailscale_advertise_exit_node | bool else [])
          + ['--accept-dns=' ~ (tailscale_accept_dns | bool | lower)]
          + (['--hostname=' ~ tailscale_hostname] if tailscale_hostname | length > 0 else [])
          + tailscale_up_extra_args.split() }}
