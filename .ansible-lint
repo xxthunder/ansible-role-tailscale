@@ -1,0 +1,8 @@
+---
+# ansible-lint config for the standalone tailscale role.
+# Skips mirror the author's other roles: role-name (Galaxy allows the bare name)
+# and schema (older-style task warnings, intentionally deferred).
+
+skip_list:
+  - role-name
+  - schema

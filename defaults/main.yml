@@ -1,0 +1,49 @@
+---
+# Defaults for the tailscale role. The role installs Tailscale from the official
+# apt repo, enables tailscaled, and (idempotently) joins the tailnet from an
+# auth key. Optionally advertises subnet routes (subnet-router mode), in which
+# case it also enables IP forwarding.
+
+# Package. Leave the version empty to track the repo's current Tailscale; pin
+# (e.g. "1.80.0") for reproducibility — same policy as the other roles.
+tailscale_package: tailscale
+tailscale_version: ""
+
+# Auth key — REQUIRED at run time, supplied via the consumer's vault, never set
+# here. A tagged, reusable/pre-authorized key lets the node come up unattended
+# and ACL'd. Empty by default so `--check` can validate the variable surface
+# without a secret present; the role asserts it is set before actually joining.
+tailscale_authkey: ""
+
+# Subnet-router mode. A CIDR (or comma-separated CIDRs) to advertise to the
+# tailnet, e.g. "192.168.178.0/24". Empty = advertise nothing (plain node).
+# When non-empty the role enables IPv4/IPv6 forwarding (a subnet router must
+# forward), and the route must still be approved once in the admin console.
+tailscale_advertise_routes: ""
+
+# Accept DNS config pushed by the tailnet (MagicDNS / global nameserver). False
+# on a subnet router — it lives on the LAN and keeps its own resolver; remote
+# *clients* are the ones that should accept tailnet DNS (set in the admin
+# console), not the router.
+tailscale_accept_dns: false
+
+# Node name in the tailnet. Empty = let Tailscale use the system hostname.
+tailscale_hostname: ""
+
+# Extra args appended verbatim to `tailscale up` (whitespace-separated), for
+# one-off flags this role does not model. Empty = none.
+tailscale_up_extra_args: ""
+
+# systemd service name (rarely overridden).
+tailscale_service: tailscaled
+
+# apt repo wiring. The keyring lives in /etc/apt/keyrings under the modern
+# signed-by convention (apt-key is deprecated) — same approach as the
+# zigbee2mqtt role's NodeSource setup. The URLs are keyed off the Debian
+# release, so gather_facts must be on in the consuming play.
+tailscale_apt_keyring_path: "/etc/apt/keyrings/tailscale.noarmor.gpg"
+tailscale_apt_key_url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.noarmor.gpg"
+tailscale_apt_list_path: "/etc/apt/sources.list.d/tailscale.list"
+tailscale_apt_repo: >-
+  deb [signed-by={{ tailscale_apt_keyring_path }}]
+  https://pkgs.tailscale.com/stable/debian {{ ansible_distribution_release }} main

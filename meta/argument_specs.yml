@@ -1,0 +1,78 @@
+---
+# Role argument spec for tailscale. Validated at role start, so a missing or
+# mistyped variable fails fast. This is the role's complete variable surface;
+# structural defaults live in defaults/main.yml (values not restated here, to
+# avoid drift).
+#
+# Requires ansible-core >= 2.11.
+
+argument_specs:
+  main:
+    short_description: Tailscale on Debian, with optional subnet-router mode.
+    description:
+      - Installs Tailscale from the official apt repo, enables tailscaled, and
+        idempotently runs `tailscale up` from an auth key. When
+        tailscale_advertise_routes is set, enables IP forwarding and advertises
+        the route(s) (the route must still be approved in the admin console).
+        See README.md for the full picture.
+    options:
+
+      tailscale_authkey:
+        type: str
+        required: false
+        no_log: true
+        description:
+          - Tailscale auth key used for a non-interactive `tailscale up`. Supply
+            via the consumer's vault. Empty is allowed so --check can validate
+            the variable surface; the role asserts it is set before it actually
+            joins a not-yet-up node.
+
+      tailscale_package:
+        type: str
+        description: Debian package name (default "tailscale").
+
+      tailscale_version:
+        type: str
+        description: Optional pinned apt version; empty tracks the repo's current.
+
+      tailscale_advertise_routes:
+        type: str
+        description:
+          - CIDR(s) to advertise to the tailnet (subnet-router mode), e.g.
+            "192.168.178.0/24". Empty advertises nothing. When set, the role
+            also enables IPv4/IPv6 forwarding.
+
+      tailscale_accept_dns:
+        type: bool
+        description:
+          - Accept DNS config pushed by the tailnet (MagicDNS / global
+            nameserver). False on a subnet router.
+
+      tailscale_hostname:
+        type: str
+        description: Node name in the tailnet; empty uses the system hostname.
+
+      tailscale_up_extra_args:
+        type: str
+        description:
+          - Extra whitespace-separated args appended verbatim to `tailscale up`.
+
+      tailscale_service:
+        type: str
+        description: systemd service name (default "tailscaled").
+
+      tailscale_apt_keyring_path:
+        type: str
+        description: On-disk path for the Tailscale apt signing key (signed-by).
+
+      tailscale_apt_key_url:
+        type: str
+        description: URL of the Tailscale apt signing key for the Debian release.
+
+      tailscale_apt_list_path:
+        type: str
+        description: Path of the role-managed apt source list.
+
+      tailscale_apt_repo:
+        type: str
+        description: The full `deb [signed-by=...] ...` apt source line.

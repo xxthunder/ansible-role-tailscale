@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: tailscale
+  namespace: xxthunder
+  author: xxthunder
+  description: >-
+    Tailscale on Debian — installs from the official apt repo, enables
+    tailscaled, and idempotently joins the tailnet from a vaulted auth key.
+    Optional subnet-router mode (advertise routes + IP forwarding).
+  company: xxthunder
+  license: MIT
+  # argument_specs.yml requires the role-arg validation introduced in 2.11.
+  min_ansible_version: "2.11"
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+
+  galaxy_tags:
+    - tailscale
+    - vpn
+    - wireguard
+    - networking
+    - mesh
+
+dependencies: []

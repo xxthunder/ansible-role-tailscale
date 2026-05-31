@@ -1,0 +1,5 @@
+# Local Ansible / tooling artifacts
+.ansible/
+*.retry
+__pycache__/
+*.pyc
