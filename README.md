@@ -14,7 +14,10 @@ The role:
   (version-pinnable).
 - Enables and starts `tailscaled`.
 - When `tailscale_advertise_routes` is set or `tailscale_advertise_exit_node` is
-  true, enables IPv4/IPv6 forwarding.
+  true, enables IPv4/IPv6 forwarding — persisted to a dedicated drop-in **and**
+  re-applied after `network-online.target` by a small systemd unit, so it
+  survives a reboot even in an unprivileged LXC (where `systemd-sysctl` runs too
+  early and the value is otherwise reset to 0 on boot).
 - Runs `tailscale up` from a (vaulted) auth key **only when the node is not
   already up** — idempotent on re-runs.
 
@@ -46,6 +49,7 @@ complete surface and is validated at role start.
 | `tailscale_authkey` | `""` | Auth key for non-interactive `tailscale up`. **Supply via vault.** Required before a not-yet-up node will join. |
 | `tailscale_advertise_routes` | `""` | CIDR(s) to advertise (subnet-router mode), e.g. `192.168.178.0/24`. When set, IP forwarding is enabled. |
 | `tailscale_advertise_exit_node` | `false` | Offer this node as an exit node (full-tunnel egress for clients). When true, IP forwarding is enabled. Approve once in the admin console. |
+| `tailscale_forwarding_sysctl_file` | `/etc/sysctl.d/99-tailscale-forwarding.conf` | Drop-in where subnet-router/exit-node forwarding is persisted; re-applied at boot by a systemd unit so it survives a reboot in an unprivileged LXC. |
 | `tailscale_accept_dns` | `false` | Accept tailnet DNS (MagicDNS). False on a subnet router. |
 | `tailscale_hostname` | `""` | Node name in the tailnet; empty uses the system hostname. |
 | `tailscale_up_extra_args` | `""` | Extra whitespace-separated args appended to `tailscale up`. |

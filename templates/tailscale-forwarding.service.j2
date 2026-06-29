@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Re-apply Tailscale subnet-router/exit-node IP forwarding
+Documentation=https://github.com/xxthunder/ansible-role-tailscale
+# systemd-sysctl runs before the container's network namespace is ready in an
+# unprivileged LXC, so the forwarding sysctls are reset to 0 when the interface
+# comes up. Re-apply the role's drop-in once the network is online so subnet
+# routing and the exit node keep working across reboots.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/sysctl -p {{ tailscale_forwarding_sysctl_file }}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

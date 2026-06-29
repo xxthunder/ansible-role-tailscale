@@ -49,17 +49,43 @@
 
 # A subnet router or exit node must forward packets between the tailnet and the
 # rest of the network. Only touched in those modes — a plain node has no reason
-# to forward.
-- name: Enable IP forwarding for subnet routing / exit node
+# to forward. Persist to a dedicated drop-in the role owns, so it can be applied
+# on its own (see the re-apply unit below).
+- name: Persist IP forwarding for subnet routing / exit node
   ansible.posix.sysctl:
     name: "{{ item }}"
     value: "1"
     sysctl_set: true
+    sysctl_file: "{{ tailscale_forwarding_sysctl_file }}"
     state: present
     reload: true
   loop:
     - net.ipv4.ip_forward
     - net.ipv6.conf.all.forwarding
+  when: tailscale_advertise_routes | length > 0 or tailscale_advertise_exit_node | bool
+
+# In an unprivileged LXC, systemd-sysctl runs before the container's network
+# namespace is ready, so the forwarding it applies at boot is reset to 0 once the
+# interface comes up — the node then silently stops routing subnet / exit traffic
+# until something re-applies it. This oneshot re-applies the drop-in after
+# network-online.target, where the value sticks. It is harmless on bare metal (it
+# just re-asserts an already-correct value), so the role installs it uniformly in
+# forwarding mode rather than trying to detect virtualization.
+- name: Install the forwarding re-apply unit
+  ansible.builtin.template:
+    src: tailscale-forwarding.service.j2
+    dest: /etc/systemd/system/tailscale-forwarding.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: tailscale_advertise_routes | length > 0 or tailscale_advertise_exit_node | bool
+
+- name: Enable the forwarding re-apply unit
+  ansible.builtin.systemd:
+    name: tailscale-forwarding.service
+    enabled: true
+    state: started
+    daemon_reload: true
   when: tailscale_advertise_routes | length > 0 or tailscale_advertise_exit_node | bool
 
 - name: Read current tailscale backend state

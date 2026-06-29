@@ -29,6 +29,14 @@ tailscale_advertise_routes: ""
 # tailscale_advertise_routes — a node can do either, both, or neither.
 tailscale_advertise_exit_node: false
 
+# Where the subnet-router / exit-node IP-forwarding sysctls are persisted. The
+# role writes a dedicated drop-in here (not buried in /etc/sysctl.conf) and —
+# because in an unprivileged LXC systemd-sysctl applies it too early, before the
+# container's netns is up, so the value is reset to 0 on boot — also installs a
+# small systemd unit that re-applies this file after network-online.target. Only
+# used in subnet-router / exit-node mode.
+tailscale_forwarding_sysctl_file: /etc/sysctl.d/99-tailscale-forwarding.conf
+
 # Accept DNS config pushed by the tailnet (MagicDNS / global nameserver). False
 # on a subnet router — it lives on the LAN and keeps its own resolver; remote
 # *clients* are the ones that should accept tailnet DNS (set in the admin
