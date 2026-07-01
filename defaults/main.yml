@@ -58,8 +58,8 @@ tailscale_service: tailscaled
 # zigbee2mqtt role's NodeSource setup. The URLs are keyed off the Debian
 # release, so gather_facts must be on in the consuming play.
 tailscale_apt_keyring_path: "/etc/apt/keyrings/tailscale.noarmor.gpg"
-tailscale_apt_key_url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.noarmor.gpg"
+tailscale_apt_key_url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_facts['distribution_release'] }}.noarmor.gpg"
 tailscale_apt_list_path: "/etc/apt/sources.list.d/tailscale.list"
 tailscale_apt_repo: >-
   deb [signed-by={{ tailscale_apt_keyring_path }}]
-  https://pkgs.tailscale.com/stable/debian {{ ansible_distribution_release }} main
+  https://pkgs.tailscale.com/stable/debian {{ ansible_facts['distribution_release'] }} main
