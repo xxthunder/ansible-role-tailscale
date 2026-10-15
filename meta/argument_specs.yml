@@ -28,6 +28,14 @@ argument_specs:
             the variable surface; the role asserts it is set before it actually
             joins a not-yet-up node.
 
+      tailscale_join:
+        type: bool
+        description:
+          - Join the tailnet with `tailscale up`. False installs and starts
+            tailscaled (and forwarding, in subnet-router / exit-node mode) but
+            does not join, so no auth key is needed — for a template image that
+            must not join yet, or a CI run.
+
       tailscale_package:
         type: str
         description: Debian package name (default "tailscale").

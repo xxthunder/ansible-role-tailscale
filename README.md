@@ -22,7 +22,8 @@ The role:
   survives a reboot even in an unprivileged LXC (where `systemd-sysctl` runs too
   early and the value is otherwise reset to 0 on boot).
 - Runs `tailscale up` from a (vaulted) auth key **only when the node is not
-  already up** — idempotent on re-runs.
+  already up** — idempotent on re-runs. With `tailscale_join: false` it stops
+  before that: the node is ready but has not joined.
 
 ## Requirements
 
@@ -31,7 +32,7 @@ The role:
 - The `ansible.posix` collection (for the forwarding sysctls).
 - A **Tailscale auth key**, supplied via the caller's vault. A *tagged,
   reusable / pre-authorized* key lets the node come up unattended and ACL'd. The
-  role does not mint or store keys.
+  role does not mint or store keys. Not needed with `tailscale_join: false`.
 - For subnet routing inside an **unprivileged LXC**: the container needs
   `/dev/net/tun`. Pass it through at the hypervisor (e.g. the `proxmox-lxc`
   role's `proxmox_lxc_devices`).
@@ -50,6 +51,7 @@ complete surface and is validated at role start.
 | Variable | Default | Description |
 |---|---|---|
 | `tailscale_authkey` | `""` | Auth key for non-interactive `tailscale up`. **Supply via vault.** Required before a not-yet-up node will join. |
+| `tailscale_join` | `true` | Join the tailnet. `false` installs and starts `tailscaled` (and forwarding) without `tailscale up` and needs no auth key — for a template image that must not join yet, or CI. |
 | `tailscale_advertise_routes` | `""` | CIDR(s) to advertise (subnet-router mode), e.g. `192.168.178.0/24`. When set, IP forwarding is enabled. |
 | `tailscale_advertise_exit_node` | `false` | Offer this node as an exit node (full-tunnel egress for clients). When true, IP forwarding is enabled. Approve once in the admin console. |
 | `tailscale_forwarding_sysctl_file` | `/etc/sysctl.d/99-tailscale-forwarding.conf` | Drop-in where subnet-router/exit-node forwarding is persisted; re-applied at boot by a systemd unit so it survives a reboot in an unprivileged LXC. |

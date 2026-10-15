@@ -88,63 +88,69 @@
     daemon_reload: true
   when: tailscale_advertise_routes | length > 0 or tailscale_advertise_exit_node | bool
 
-- name: Read current tailscale backend state
-  # Read-only; runs even under --check so a real subsequent --check of an
-  # already-provisioned node reports correctly. failed_when:false because a
-  # not-yet-up daemon exits non-zero.
-  ansible.builtin.command:
-    cmd: tailscale status --json
-  register: tailscale_status
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: not ansible_check_mode
+# Everything below joins the tailnet. tailscale_join: false stops after the
+# daemon and forwarding are in place — for a template image that must not join
+# yet, or a CI run with no tailnet to join.
+- name: Join the tailnet
+  when: tailscale_join | bool
+  block:
+    - name: Read current tailscale backend state
+      # Read-only; runs even under --check so a real subsequent --check of an
+      # already-provisioned node reports correctly. failed_when:false because a
+      # not-yet-up daemon exits non-zero.
+      ansible.builtin.command:
+        cmd: tailscale status --json
+      register: tailscale_status
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: not ansible_check_mode
 
-- name: Determine whether tailscale is already up
-  ansible.builtin.set_fact:
-    tailscale_is_running: >-
-      {{ tailscale_status.rc | default(1) == 0
-         and (tailscale_status.stdout | default('{}') | from_json).BackendState | default('NoState') == 'Running' }}
-  when: not ansible_check_mode
+    - name: Determine whether tailscale is already up
+      ansible.builtin.set_fact:
+        tailscale_is_running: >-
+          {{ tailscale_status.rc | default(1) == 0
+             and (tailscale_status.stdout | default('{}') | from_json).BackendState | default('NoState') == 'Running' }}
+      when: not ansible_check_mode
 
-- name: Assert an auth key is available before joining the tailnet
-  ansible.builtin.assert:
-    that:
-      - tailscale_authkey | length > 0
-    fail_msg: >-
-      tailscale_authkey is empty. Supply a tagged, reusable/pre-authorized
-      Tailscale auth key via the consumer's vault (vault_tailscale_authkey,
-      bridged in group_vars). The role does not mint or store keys.
-  when:
-    - not ansible_check_mode
-    - not tailscale_is_running
+    - name: Assert an auth key is available before joining the tailnet
+      ansible.builtin.assert:
+        that:
+          - tailscale_authkey | length > 0
+        fail_msg: >-
+          tailscale_authkey is empty. Supply a tagged, reusable/pre-authorized
+          Tailscale auth key via the consumer's vault (vault_tailscale_authkey,
+          bridged in group_vars). The role does not mint or store keys.
+      when:
+        - not ansible_check_mode
+        - not tailscale_is_running
 
-- name: Build the tailscale up argument vector
-  # argv (not a shell string) so the auth key never passes through a shell and
-  # empty optionals drop out cleanly. accept-dns takes an explicit true/false.
-  ansible.builtin.set_fact:
-    tailscale_up_argv: >-
-      {{ ['tailscale', 'up', '--authkey=' ~ tailscale_authkey]
-         + (['--advertise-routes=' ~ tailscale_advertise_routes] if tailscale_advertise_routes | length > 0 else [])
-         + (['--advertise-exit-node'] if tailscale_advertise_exit_node | bool else [])
-         + ['--accept-dns=' ~ (tailscale_accept_dns | bool | lower)]
-         + (['--hostname=' ~ tailscale_hostname] if tailscale_hostname | length > 0 else [])
-         + tailscale_up_extra_args.split() }}
-  no_log: true
-  when:
-    - not ansible_check_mode
-    - not tailscale_is_running
+    - name: Build the tailscale up argument vector
+      # argv (not a shell string) so the auth key never passes through a shell and
+      # empty optionals drop out cleanly. accept-dns takes an explicit true/false.
+      ansible.builtin.set_fact:
+        tailscale_up_argv: >-
+          {{ ['tailscale', 'up', '--authkey=' ~ tailscale_authkey]
+             + (['--advertise-routes=' ~ tailscale_advertise_routes] if tailscale_advertise_routes | length > 0 else [])
+             + (['--advertise-exit-node'] if tailscale_advertise_exit_node | bool else [])
+             + ['--accept-dns=' ~ (tailscale_accept_dns | bool | lower)]
+             + (['--hostname=' ~ tailscale_hostname] if tailscale_hostname | length > 0 else [])
+             + tailscale_up_extra_args.split() }}
+      no_log: true
+      when:
+        - not ansible_check_mode
+        - not tailscale_is_running
 
-- name: Bring tailscale up (join the tailnet)
-  # no_log: the argv carries the auth key. Gated on backend state so a
-  # re-run against an already-joined node is a no-op (idempotent). To change
-  # advertised routes / DNS on a node that is already up, run `tailscale set`
-  # on the host (or `tailscale down` first) — see README.
-  ansible.builtin.command:
-    argv: "{{ tailscale_up_argv }}"
-  register: tailscale_up
-  changed_when: true
-  no_log: true
-  when:
-    - not ansible_check_mode
-    - not tailscale_is_running
+    - name: Bring tailscale up (join the tailnet)
+      # no_log: the argv carries the auth key. Gated on backend state so a
+      # re-run against an already-joined node is a no-op (idempotent). To change
+      # advertised routes / DNS on a node that is already up, run `tailscale set`
+      # on the host (or `tailscale down` first) — see README.
+      ansible.builtin.command:
+        argv: "{{ tailscale_up_argv }}"
+      register: tailscale_up
+      changed_when: true
+      no_log: true
+      when:
+        - not ansible_check_mode
+        - not tailscale_is_running

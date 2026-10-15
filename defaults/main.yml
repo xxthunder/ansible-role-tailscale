@@ -15,6 +15,11 @@ tailscale_version: ""
 # without a secret present; the role asserts it is set before actually joining.
 tailscale_authkey: ""
 
+# Join the tailnet. False installs and starts tailscaled (and forwarding, in
+# subnet-router / exit-node mode) but never runs `tailscale up`, so no auth key
+# is needed — for a template image that must not join yet, or a CI run.
+tailscale_join: true
+
 # Subnet-router mode. A CIDR (or comma-separated CIDRs) to advertise to the
 # tailnet, e.g. "192.168.178.0/24". Empty = advertise nothing (plain node).
 # When non-empty the role enables IPv4/IPv6 forwarding (a subnet router must
