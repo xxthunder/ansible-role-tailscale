@@ -1,5 +1,8 @@
 # Ansible Role: tailscale
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Ansible](https://img.shields.io/badge/Ansible-2.11%2B-blue.svg)](https://docs.ansible.com/)
+
 Install [Tailscale](https://tailscale.com/) on Debian, enable `tailscaled`, and
 idempotently join the tailnet from an auth key. Optionally run the node as a
 **subnet router** — advertise one or more LAN CIDRs to the tailnet and enable IP
