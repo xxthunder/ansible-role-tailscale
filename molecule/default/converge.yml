@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    # CI has no tailnet to join: install and start tailscaled, skip `tailscale up`.
+    tailscale_join: false
+  roles:
+    - role: tailscale

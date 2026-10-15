@@ -1,0 +1,6 @@
+---
+# Collections the role needs. The consuming project installs them itself; CI
+# installs them from here for ansible-lint and Molecule.
+collections:
+  # ansible.posix.sysctl persists the subnet-router / exit-node forwarding.
+  - name: ansible.posix

@@ -1,0 +1,36 @@
+---
+# Converges the role in systemd-enabled Debian containers, then idempotency-
+# checks and verifies. CI has no tailnet, so the role installs and starts
+# tailscaled without joining (converge.yml). Two instances cover both supported
+# releases and both modes: Debian 12 as a plain node, Debian 13 as subnet router
+# and exit node. The advertised route is a documentation range (RFC 5737).
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: bookworm
+    image: geerlingguy/docker-debian12-ansible:latest
+    command: /lib/systemd/systemd
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    pre_build_image: true
+  - name: trixie
+    image: geerlingguy/docker-debian13-ansible:latest
+    command: /lib/systemd/systemd
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    pre_build_image: true
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      trixie:
+        tailscale_advertise_routes: "192.0.2.0/24"
+        tailscale_advertise_exit_node: true
+verifier:
+  name: ansible

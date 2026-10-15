@@ -1,0 +1,70 @@
+---
+name: CI
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: "tailscale"
+
+jobs:
+  lint:
+    name: ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+        with:
+          path: "tailscale"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install test dependencies
+        run: |
+          pip3 install ansible-core ansible-lint
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Run ansible-lint
+        run: ansible-lint
+        env:
+          # converge.yml references the role by name; the role itself is the
+          # checkout root, so its parent must be on the roles path for the
+          # molecule playbook's syntax-check to resolve it.
+          ANSIBLE_ROLES_PATH: ".."
+
+  molecule:
+    name: molecule
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+        with:
+          path: "tailscale"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install test dependencies
+        run: |
+          pip3 install ansible-core "molecule-plugins[docker]" docker
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Run Molecule tests
+        run: molecule test
+        env:
+          # The role dir is the checkout root; put it on the roles path so
+          # the converge's `- role: tailscale` resolves under molecule too.
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}
+          ANSIBLE_FORCE_COLOR: "1"
+          PY_COLORS: "1"

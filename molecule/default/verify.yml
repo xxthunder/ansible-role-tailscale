@@ -1,0 +1,71 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars:
+    # The same condition the role uses to turn forwarding on.
+    tailscale_test_forwarding: >-
+      {{ (tailscale_advertise_routes | default('') | length > 0)
+         or (tailscale_advertise_exit_node | default(false) | bool) }}
+    tailscale_test_dropin: /etc/sysctl.d/99-tailscale-forwarding.conf
+  tasks:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Tailscale is installed and tailscaled runs enabled
+      ansible.builtin.assert:
+        that:
+          - "'tailscale' in ansible_facts.packages"
+          - "'tailscaled.service' in ansible_facts.services"
+          - ansible_facts.services['tailscaled.service'].state == 'running'
+          - ansible_facts.services['tailscaled.service'].status == 'enabled'
+        fail_msg: tailscale is not installed, or tailscaled is not running and enabled
+
+    - name: Stat the apt keyring and source
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/apt/keyrings/tailscale.noarmor.gpg
+        - /etc/apt/sources.list.d/tailscale.list
+      register: tailscale_test_apt
+
+    - name: The apt keyring and source are in place
+      ansible.builtin.assert:
+        that: tailscale_test_apt.results | map(attribute='stat.exists') | list == [true, true]
+        fail_msg: the Tailscale apt keyring or source list is missing
+
+    - name: Stat the forwarding drop-in
+      ansible.builtin.stat:
+        path: "{{ tailscale_test_dropin }}"
+      register: tailscale_test_dropin_stat
+
+    - name: The forwarding drop-in exists only in router mode
+      ansible.builtin.assert:
+        that: tailscale_test_dropin_stat.stat.exists == (tailscale_test_forwarding | bool)
+        fail_msg: >-
+          forwarding drop-in exists={{ tailscale_test_dropin_stat.stat.exists }},
+          expected {{ tailscale_test_forwarding | bool }}
+
+    - name: Read IPv4 forwarding
+      ansible.builtin.command: sysctl -n net.ipv4.ip_forward
+      register: tailscale_test_ip_forward
+      changed_when: false
+      when: tailscale_test_forwarding | bool
+
+    - name: A router forwards and re-applies forwarding at boot
+      ansible.builtin.assert:
+        that:
+          - tailscale_test_ip_forward.stdout == '1'
+          - "'tailscale-forwarding.service' in ansible_facts.services"
+          - ansible_facts.services['tailscale-forwarding.service'].status == 'enabled'
+        fail_msg: IPv4 forwarding is off, or tailscale-forwarding.service is not enabled
+      when: tailscale_test_forwarding | bool
+
+    - name: A plain node has no forwarding unit
+      ansible.builtin.assert:
+        that: "'tailscale-forwarding.service' not in ansible_facts.services"
+        fail_msg: tailscale-forwarding.service is installed on a plain node
+      when: not (tailscale_test_forwarding | bool)
