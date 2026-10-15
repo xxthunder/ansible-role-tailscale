@@ -1,7 +1,9 @@
 # Ansible Role: tailscale
 
+[![CI](https://github.com/xxthunder/ansible-role-tailscale/actions/workflows/test.yml/badge.svg)](https://github.com/xxthunder/ansible-role-tailscale/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ansible](https://img.shields.io/badge/Ansible-2.11%2B-blue.svg)](https://docs.ansible.com/)
+[![ansible-lint](https://img.shields.io/badge/ansible--lint-passing-brightgreen.svg)](https://ansible.readthedocs.io/projects/lint/)
 
 Install [Tailscale](https://tailscale.com/) on Debian, enable `tailscaled`, and
 idempotently join the tailnet from an auth key. Optionally run the node as a
